@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalpa Fernando</title>
+
+  <!-- Tailwind for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- AOS for fade animations -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <script>
+    /* ---------- CONFIGURE EMAILJS ---------- */
+    // Replace with your EmailJS PUBLIC KEY
+    emailjs.init("Sf2fbhCfTznrN84GM");
+
+    window.onload = () => {
+      AOS.init({duration:1000});
+      loadRepos();
+    };
+
+    /* Fetch latest GitHub repos */
+    async function loadRepos(){
+      const res = await fetch('https://api.github.com/users/Ravediff/repos?sort=updated&per_page=4');
+      const data = await res.json();
+      const list = document.getElementById('latest-repos');
+      data.forEach(r=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<a href="${r.html_url}" target="_blank" class="card">📂 ${r.name}</a>`;
+        list.appendChild(li);
+      });
+    }
+
+    /* Send Email using EmailJS */
+    function sendMail(e){
+      e.preventDefault();
+      const params = {
+        from_name:  document.getElementById('name').value,
+        from_email: document.getElementById('email').value,
+        message:    document.getElementById('message').value
+      };
+      emailjs.send(
+        "service_ajvh72z",   // ✅ Replace with your Service ID
+        "template_r83c3rt",  // ✅ Replace with your Template ID
+        params
+      )
+      .then(() => alert("✅ Message sent!"))
+      .catch(err => alert("❌ Failed to send: " + JSON.stringify(err)));
+    }
+  </script>
+
+  <!-- Custom CSS -->
+  <style>
+    /* ===== Cosmic Background ===== */
+    .space-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle at 50% 20%, #0b1c3b 0%, #01010f 100%);
+      z-index: -5;
+    }
+    .stars { position: fixed; top:0; left:0; width:1px; height:1px; pointer-events:none; }
+    .stars1 { box-shadow: var(--layer1); animation: drift 100s linear infinite; }
+    .stars2 { box-shadow: var(--layer2); opacity:.6; animation: drift 160s linear infinite; }
+    .stars3 { box-shadow: var(--layer3); opacity:.3; animation: drift 220s linear infinite; }
+    @keyframes drift { from {transform:translateY(0);} to {transform:translateY(-200%);} }
+    :root {
+      --layer1: 10vw 20vh #fff,30vw 70vh #fff,50vw 40vh #fff,70vw 80vh #fff,
+                90vw 30vh #fff,20vw 90vh #fff,40vw 10vh #fff,60vw 50vh #fff;
+      --layer2: 15vw 60vh #fff,35vw 20vh #fff,55vw 90vh #fff,75vw 40vh #fff,
+                95vw 70vh #fff,25vw 50vh #fff,45vw 30vh #fff,65vw 10vh #fff;
+      --layer3: 5vw 35vh #fff,25vw 80vh #fff,45vw 60vh #fff,65vw 25vh #fff,
+                85vw 55vh #fff,35vw 75vh #fff,55vw 15vh #fff,75vw 95vh #fff;
+    }
+    .stars::after,.stars2::after,.stars3::after {
+      content:''; position:absolute; top:200%; width:1px; height:1px;
+      background:transparent; box-shadow:inherit;
+    }
+    .grid-floor {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      height: 40vh;
+      background-image:
+        linear-gradient(#00ffff33 1px, transparent 1px),
+        linear-gradient(90deg, #00ffff33 1px, transparent 1px);
+      background-size: 40px 40px;
+      transform: perspective(600px) rotateX(60deg);
+      animation: gridScroll 8s linear infinite;
+      z-index: -4;
+      opacity: .2;
+    }
+    @keyframes gridScroll {
+      from { background-position: 0 0, 0 0; }
+      to   { background-position: 0 40px, 40px 0; }
+    }
+    /* ===== Cards & Inputs ===== */
+    .section-title {
+      display:inline-block;
+      font-size:1.2rem;
+      font-weight:600;
+      padding-bottom:.25rem;
+      border-bottom:2px solid;
+    }
+    .card-list { display:grid; gap:.75rem; margin-top:1rem; }
+    .card {
+      display:block;
+      padding:.75rem 1rem;
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(0,255,255,0.25);
+      border-radius:.75rem;
+      backdrop-filter:blur(4px);
+      font-size:0.95rem;
+      color:#e5e7eb;
+      text-decoration:none;
+      transition:transform .25s,box-shadow .25s,background .25s;
+    }
+    .card:hover {
+      transform:scale(1.03);
+      background:rgba(255,255,255,0.1);
+      box-shadow:0 0 10px rgba(0,255,255,0.3);
+    }
+    .btn-link {
+      padding:.5rem 1rem;
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(0,255,255,0.25);
+      border-radius:.75rem;
+      text-decoration:none;
+      color:#e5e7eb;
+      font-size:.95rem;
+      transition:background .25s,transform .25s,box-shadow .25s;
+    }
+    .btn-link:hover {
+      background:rgba(255,255,255,0.12);
+      transform:scale(1.05);
+      box-shadow:0 0 8px rgba(0,255,255,0.3);
+    }
+    .input {
+      padding:.5rem .75rem;
+      border:1px solid rgba(0,255,255,0.25);
+      border-radius:.5rem;
+      background:rgba(255,255,255,0.06);
+      color:#e5e7eb;
+      font-size:.9rem;
+    }
+    .input:focus {
+      outline:none;
+      border-color:#00ffff80;
+      background:rgba(255,255,255,0.1);
+    }
+  </style>
+</head>
+
+<body class="relative font-sans text-gray-200 overflow-x-hidden">
+
+  <!-- BACKGROUND LAYERS -->
+  <div class="space-bg"></div>
+  <div class="stars stars1"></div>
+  <div class="stars stars2"></div>
+  <div class="stars stars3"></div>
+  <div class="grid-floor"></div>
+
+  <!-- MAIN CONTENT -->
+  <main class="relative z-50 max-w-4xl mx-auto px-4">
+
+    <!-- HEADER -->
+    <header class="flex justify-between items-center py-6">
+      <h1 class="text-2xl font-bold tracking-widest text-cyan-400 drop-shadow">RAVEN</h1>
+    </header>
+
+    <!-- HERO -->
+    <section class="text-center py-12" data-aos="fade-down">
+      <h2 class="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-purple-500 bg-clip-text text-transparent">
+        Kalpa Fernando
+      </h2>
+      <p class="mt-4 text-gray-300">
+        Full-Stack Developer in progress.<br>
+        Building apps and exploring creativity across galaxies 🌌
+      </p>
+      <div class="flex justify-center gap-4 mt-6">
+        <a href="https://github.com/Ravediff" class="btn-link">GitHub Profile</a>
+      </div>
+    </section>
+
+    <!-- CERTIFICATES -->
+    <section class="mt-12" data-aos="fade-up">
+      <h3 class="section-title border-cyan-400">Certificates</h3>
+      <ul class="card-list">
+        <li>
+          <a href="https://www.coursera.org/account/accomplishments/verify/2VPJ3U7X1PP5"
+             target="_blank" class="card">🎓 IBM Full-Stack Developer – Intro</a>
+        </li>
+      </ul>
+    </section>
+
+    <!-- GITHUB STATS -->
+    <section class="mt-12" data-aos="fade-up">
+      <h3 class="section-title border-purple-400">GitHub Stats</h3>
+      <div class="flex flex-wrap gap-4 mt-4 justify-center">
+        <img src="https://github-readme-stats.vercel.app/api?username=Ravediff&show_icons=true&theme=radical" 
+             alt="GitHub stats" class="rounded-md shadow-md max-w-full">
+        <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=Ravediff&layout=compact&theme=radical"
+             alt="Top languages" class="rounded-md shadow-md max-w-full">
+      </div>
+    </section>
+
+    <!-- LATEST REPOS -->
+    <section class="mt-12" data-aos="fade-up">
+      <h3 class="section-title border-purple-400">Latest Repositories</h3>
+      <ul id="latest-repos" class="card-list"></ul>
+    </section>
+
+    <!-- CONTACT FORM -->
+    <section class="mt-12" data-aos="fade-up">
+      <h3 class="section-title border-cyan-400">Contact Me</h3>
+      <form class="mt-4 grid gap-3" onsubmit="sendMail(event)">
+        <input id="name" type="text" placeholder="Your Name" required class="input">
+        <input id="email" type="email" placeholder="Your Email" required class="input">
+        <textarea id="message" rows="4" placeholder="Message" required class="input"></textarea>
+        <button type="submit" class="btn-link w-max">Send Message</button>
+      </form>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="mt-16 text-center text-sm text-gray-400">
+      <p>© 2025 Kalpa Fernando • Designed in the stars ✨</p>
+    </footer>
+
+  </main>
+</body>
+</html>
+
+
