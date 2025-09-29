@@ -1,4 +1,6 @@
-/* ===== Base Space Background ===== */
+/* ===== Enhanced Portfolio Styles ===== */
+
+/* Keep existing space background and stars */
 .space-bg {
   position: fixed;
   top: 0; left: 0;
@@ -7,7 +9,6 @@
   z-index: -5;
 }
 
-/* ===== Stars ===== */
 .stars { position: fixed; top:0; left:0; width:1px; height:1px; pointer-events:none; }
 .stars1 { box-shadow: var(--layer1); animation: drift 100s linear infinite; }
 .stars2 { box-shadow: var(--layer2); opacity:.6; animation: drift 160s linear infinite; }
@@ -27,7 +28,27 @@
   background:transparent; box-shadow:inherit;
 }
 
-/* ===== Grid Floor ===== */
+.toast {
+position: fixed;
+top: 20px;
+right: 20px;
+background: rgba(0, 255, 255, 0.15);
+border: 1px solid rgba(0,255,255,0.4);
+color: #e5e7eb;
+padding: 1rem 1.25rem;
+border-radius: .75rem;
+font-size: 0.9rem;
+backdrop-filter: blur(4px);
+box-shadow: 0 0 10px rgba(0,255,255,0.3);
+opacity: 0;
+transform: translateY(-20px);
+transition: opacity 0.4s ease, transform 0.4s ease;
+z-index: 9999;
+}
+.toast.show {
+opacity: 1;
+transform: translateY(0);
+}
 .grid-floor {
   position: fixed;
   bottom: 0;
@@ -47,23 +68,39 @@
   to   { background-position: 0 40px, 40px 0; }
 }
 
-/* ===== Sections & Cards ===== */
-.section-title {
-  display: inline-block;
-  font-size: 1.2rem;
-  font-weight: 600;
-  padding-bottom: .25rem;
-  border-bottom: 2px solid;
+/* Typography tweaks */
+body {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
 }
 
+/* Navigation */
+nav ul li a {
+  transition: color 0.3s ease;
+}
+nav ul li a:hover {
+  color: #22d3ee; /* cyan-400 */
+}
+
+/* Section titles */
+.section-title {
+  display: inline-block;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding-bottom: .25rem;
+  border-bottom: 2px solid;
+  margin-bottom: .75rem;
+}
+
+/* Cards */
 .card-list {
   display: grid;
-  gap: .75rem;
+  gap: 1rem;
   margin-top: 1rem;
 }
 .card {
   display: block;
-  padding: .75rem 1rem;
+  padding: 1rem 1.25rem;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(0,255,255,0.25);
   border-radius: .75rem;
@@ -74,12 +111,12 @@
   transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
 }
 .card:hover {
-  transform: scale(1.03);
+  transform: translateY(-4px) scale(1.03);
   background: rgba(255,255,255,0.1);
-  box-shadow: 0 0 10px rgba(0,255,255,0.3);
+  box-shadow: 0 0 15px rgba(0,255,255,0.35);
 }
 
-/* ===== Buttons & Inputs ===== */
+/* Buttons */
 .btn-link {
   padding: .5rem 1rem;
   background: rgba(255,255,255,0.06);
@@ -96,6 +133,7 @@
   box-shadow: 0 0 8px rgba(0,255,255,0.3);
 }
 
+/* Inputs */
 .input {
   padding: .5rem .75rem;
   border: 1px solid rgba(0,255,255,0.25);
@@ -110,3 +148,21 @@
   background: rgba(255,255,255,0.1);
 }
 
+/* Responsive spacing */
+section {
+  padding-top: 2rem;
+}
+
+/* Project cards special hover */
+#projects .card:hover h4 {
+  color: #22d3ee;
+}
+
+/* Footer */
+footer {
+  margin-top: 4rem;
+  color: #94a3b8;
+}
+footer p {
+  font-size: 0.85rem;
+}
