@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RavenTV — 24h Live Schedule (Europe/Rome)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; background:#0e0e0e; color:#eee; font-family:system-ui, Arial, sans-serif; text-align:center; }
+    header { background:#1b1b1b; padding:14px 18px; font-size:1.25rem; font-weight:600; }
+    #player { width:90%; max-width:960px; aspect-ratio:16/9; display:inline-block; margin-top:14px; }
+    #now { margin-top:12px; font-size:1rem; }
+    #next, #clock { color:#9aa; font-size:0.9rem; margin-top:4px; }
+    .hint { color:#889; font-size:12px; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <header>📡 RavenTV — 24-Hour Live Schedule (Europe/Rome)</header>
+  <div id="player"></div>
+  <div id="now"></div>
+  <div id="next"></div>
+  <div id="clock" class="hint"></div>
+  <div class="hint">No pause • No seek • Auto-sync to Europe/Rome time • Fallback if unavailable</div>
+
+<script>
+/* =========================
+   24h SCHEDULE — Europe/Rome
+   NOTE: No looping. Each slot plays its item only during the scheduled time window.
+   You can replace URLs with your own. Long livestreams are used for reliability.
+   ========================= */
+const schedule = [
+  // 00:00–06:00 — Overnight Chill (lofi/ambient long streams)
+  { title: "Overnight: Lofi Girl",            url: "https://www.youtube.com/watch?v=jfKfPfyJRdk", start: "00:00", duration: 10800 }, // 3h
+  { title: "Overnight: Chillhop Radio",       url: "https://www.youtube.com/watch?v=5yx6BWlEVcY", start: "03:00", duration: 10800 }, // 3h
+
+  // 06:00–08:00 — Morning Shorts (CC/public films)
+  { title: "Big Buck Bunny (CC)",             url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ", start: "06:00", duration: 900 },   // 15m (play within window)
+  { title: "Sintel (CC)",                     url: "https://www.youtube.com/watch?v=eRsGyueVLvQ", start: "06:15", duration: 1000 }, // ~16m40
+  { title: "Tears of Steel (CC)",             url: "https://www.youtube.com/watch?v=R6MlUcmOul8", start: "06:33", duration: 760 },  // ~12m40
+  { title: "Morning Ambient Stream",          url: "https://www.youtube.com/watch?v=Uq0_zEvC3JU", start: "06:46", duration: 4440 }, // fill to 08:00
+
+  // 08:00–12:00 — Daytime Easy
+  { title: "Daytime: Lofi Girl",              url: "https://www.youtube.com/watch?v=jfKfPfyJRdk", start: "08:00", duration: 7200 }, // 2h
+  { title: "Daytime: Chillhop",               url: "https://www.youtube.com/watch?v=-GhO4J5E_hE&list=PL60w-HuMkn3Dpe-rpmoi0g_FJA1gYJjHX", start: "10:00", duration: 7200 }, // 2h
+
+  // 12:00–15:00 — Midday Feature/Clips
+  { title: "Midday Feature (CC clip block)",  url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ", start: "12:00", duration: 1200 }, // short CC film block starter
+  { title: "Public Domain Cartoons Marathon", url: "https://www.youtube.com/watch?v=je1jggZQofI", start: "12:20", duration: 10000 }, // long comp (plays until 15:00 boundary)
+
+  // 15:00–18:00 — Afternoon Chill / Ambient
+  { title: "Afternoon: Chillhop",             url: "https://www.youtube.com/watch?v=5yx6BWlEVcY", start: "15:00", duration: 5400 }, // 1.5h
+  { title: "Afternoon: Nature Ambient 4K",    url: "https://www.youtube.com/watch?v=Uq0_zEvC3JU", start: "16:30", duration: 5400 }, // 1.5h
+
+  // 18:00–21:00 — Early Evening (CC film + stream)
+  { title: "Evening Feature Starter (CC)",    url: "https://www.youtube.com/watch?v=eRsGyueVLvQ", start: "18:00", duration: 1000 },
+  { title: "Evening: Lofi Girl",              url: "https://www.youtube.com/watch?v=jfKfPfyJRdk", start: "18:17", duration: 6100 }, // to 20:00
+  { title: "Evening: Chillhop",               url: "https://www.youtube.com/watch?v=5yx6BWlEVcY", start: "20:00", duration: 3600 },
+
+  // 21:00–24:00 — Night Block (ambient/chill)
+  { title: "Night: Ambient Stream",           url: "https://www.youtube.com/watch?v=Uq0_zEvC3JU", start: "21:00", duration: 5400 }, // 1.5h
+  { title: "Late Night: Lofi Girl",           url: "https://www.youtube.com/watch?v=jfKfPfyJRdk", start: "22:30", duration: 5400 }  // to 24:00
+];
+
+/* Safe fallback if any item errors or is blocked */
+const FALLBACK_VIDEO_ID = "jfKfPfyJRdk"; // Lofi Girl (generally embeddable)
+
+/* =========================
+   CORE LOGIC (no looping)
+   ========================= */
+let currentKey = null;
+let ytPlayer = null;
+
+function romeHMS() {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Rome',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  }).formatToParts(new Date());
+  const h = +parts.find(p => p.type==='hour').value;
+  const m = +parts.find(p => p.type==='minute').value;
+  const s = +parts.find(p => p.type==='second').value;
+  return {h,m,s};
+}
+function romeSec() { const {h,m,s}=romeHMS(); return h*3600+m*60+s; }
+function hmsToSec(hhmm){ const [h,m]=hhmm.split(':').map(Number); return h*3600+m*60; }
+
+function findCurrent() {
+  const now = romeSec();
+  for (let i=0;i<schedule.length;i++){
+    const start = hmsToSec(schedule[i].start);
+    const end = start + schedule[i].duration;
+    if (now >= start && now < end) {
+      return { show:schedule[i], elapsed: now - start, next: schedule[i+1] || null };
+    }
+  }
+  return null;
+}
+function extractId(url){
+  try{
+    if(url.includes('youtu.be/')) return url.split('youtu.be/')[1].split(/[?&]/)[0];
+    const u = new URL(url);
+    return u.searchParams.get('v');
+  }catch{ return null; }
+}
+
+function makePlayer(videoId, startAt){
+  ytPlayer = new YT.Player('player', {
+    height: '540', width: '960', videoId,
+    playerVars:{
+      autoplay:1, controls:0, disablekb:1,
+      start: Math.max(0, Math.floor(startAt)),
+      modestbranding:1, rel:0
+    },
+    events:{
+      onReady: (e)=> e.target.playVideo(),
+      onStateChange: (e)=>{
+        // No pausing
+        if (e.data === YT.PlayerState.PAUSED) e.target.playVideo();
+      },
+      onError: ()=>{
+        // Fallback to safe stream if blocked/unavailable
+        if (ytPlayer) { try{ ytPlayer.destroy(); }catch{} ytPlayer=null; }
+        makePlayer(FALLBACK_VIDEO_ID, 0);
+        document.getElementById('now').textContent = "▶ Now Playing: (Fallback Stream)";
+      }
+    }
+  });
+}
+
+function loadProgram(force=false){
+  const info = findCurrent();
+  const $now = document.getElementById('now');
+  const $next = document.getElementById('next');
+
+  if(!info){
+    if(force && ytPlayer){ try{ ytPlayer.destroy(); }catch{} ytPlayer=null; }
+    currentKey = null;
+    $now.textContent = "⏸ Off-air";
+    $next.textContent = "";
+    return;
+  }
+
+  const key = info.show.title;
+  if(!force && key === currentKey) return; // same slot: do nothing
+  currentKey = key;
+
+  $now.textContent = `▶ Now Playing: ${info.show.title}`;
+  $next.textContent = info.next ? `⏭ Next at ${info.next.start} → ${info.next.title}` : "";
+
+  const vid = extractId(info.show.url) || FALLBACK_VIDEO_ID;
+  if (ytPlayer){ try{ ytPlayer.destroy(); }catch{} ytPlayer=null; }
+  makePlayer(vid, info.elapsed);
+}
+
+window.onYouTubeIframeAPIReady = () => {
+  loadProgram(true);
+  // check for slot change every 5s (no reseek mid-show, so no jitter)
+  setInterval(()=>loadProgram(false), 5000);
+};
+
+// clock UI
+function tickClock(){
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone:'Europe/Rome', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
+  }).format(new Date());
+  document.getElementById('clock').textContent = `Europe/Rome time: ${parts}`;
+}
+setInterval(tickClock, 1000); tickClock();
+</script>
+</body>
+</html>
