@@ -1,158 +1,473 @@
-<!-- Updated index.html with side-by-side repo photos and no cloud project -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kalpa Fernando | Portfolio</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kalpa Fernando — Portfolio</title>
+  <meta name="description" content="Portfolio of Kalpa Fernando (Raven): aspiring full‑stack developer building clean, fast, modern web apps." />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://kalpafernando.com/" />
+  <meta name="theme-color" content="#0b1220" />
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:title" content="Kalpa Fernando — Portfolio" />
+  <meta property="og:description" content="Aspiring full‑stack developer. Projects, skills, and contact." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://kalpafernando.com/" />
+  <meta property="og:image" content="/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css">
 
-  <!-- AOS Animations -->
-  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
-  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-
-  <!-- EmailJS -->
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    emailjs.init("Sf2fbhCfTznrN84GM");
-    window.onload = () => { AOS.init({duration:1000}); loadRepos(); };
-
-    async function loadRepos(){
-      const res = await fetch('https://api.github.com/users/Ravediff/repos?sort=updated&per_page=7');
-      const data = await res.json();
-      const grid = document.getElementById('repo-gallery');
-      grid.innerHTML = "";
-      data.forEach(r=>{
-        const div = document.createElement('div');
-        div.className = "card flex flex-col items-center";
-        const img = document.createElement('img');
-        img.src = `https://opengraph.githubassets.com/1/${r.full_name}`;
-        img.alt = r.name;
-        img.className = "rounded-md shadow-md mb-2";
-        const link = document.createElement('a');
-        link.href = r.html_url;
-        link.target = "_blank";
-        link.textContent = r.name;
-        link.className = "text-cyan-300 hover:underline";
-        div.appendChild(img);
-        div.appendChild(link);
-        grid.appendChild(div);
-      });
-    }
-
-    function sendMail(e){
-      e.preventDefault();
-      const params = {
-        from_name:  document.getElementById('name').value,
-        from_email: document.getElementById('email').value,
-        message:    document.getElementById('message').value
-      };
-      emailjs.send("service_ajvh72z","template_r83c3rt",params)
-        .then(() => alert("✅ Message sent!"))
-        .catch(err => alert("❌ Failed: " + JSON.stringify(err)));
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+          colors: {
+            base: {
+              900: '#0b1220',
+              800: '#101828',
+              700: '#1b2336'
+            },
+            accent: {
+              400: '#22d3ee', // cyan-400
+              500: '#a855f7', // purple-500
+              600: '#d946ef'  // fuchsia-500
+            }
+          },
+          boxShadow: {
+            soft: '0 10px 30px rgba(0,0,0,.2)'
+          },
+          animation: {
+            'fade-in': 'fade-in .6s ease both',
+          },
+          keyframes: {
+            'fade-in': {
+              '0%': { opacity: 0, transform: 'translateY(4px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' }
+            },
+          },
+        }
+      }
     }
   </script>
+
+  <!-- AOS (on-scroll animations) -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+
+  <!-- EmailJS (public key is fine client-side) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
+  <!-- GitHub Cards image domain preconnect -->
+  <link rel="preconnect" href="https://opengraph.githubassets.com" crossorigin />
+
+  <style>
+    /* Subtle radial gradient + grid background */
+    :root { color-scheme: dark; }
+    body { background: radial-gradient(1200px 600px at 60% -10%, rgba(34,211,238,.12), transparent 60%), radial-gradient(1000px 600px at -10% 10%, rgba(168,85,247,.10), transparent 55%), #0b1220; }
+    .grid-bg:before { content:''; position:absolute; inset:0; background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px); background-size: 40px 40px; mask-image: radial-gradient(ellipse at 50% -10%, rgba(0,0,0,.7), transparent 65%); pointer-events:none; }
+    .glass { backdrop-filter: blur(8px); background: rgba(16,24,40,.6); border: 1px solid rgba(255,255,255,.06); }
+
+    /* Better focus rings */
+    :focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; border-radius: .5rem; }
+
+    /* Simple skeleton */
+    .skeleton { background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.12) 37%, rgba(255,255,255,.06) 63%); background-size: 400% 100%; animation: shimmer 1.2s ease-in-out infinite; }
+    @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+  </style>
 </head>
-<body class="relative font-sans text-gray-200 overflow-x-hidden">
-  <!-- Background -->
-  <div class="space-bg"></div>
-  <div class="stars stars1"></div>
-  <div class="stars stars2"></div>
-  <div class="stars stars3"></div>
-  <div class="grid-floor"></div>
 
-  <main class="relative z-50 max-w-5xl mx-auto px-4">
-
-    <!-- Navbar -->
-    <nav class="flex justify-between items-center py-6">
-      <h1 class="text-2xl font-bold tracking-widest text-cyan-400">RAVEN</h1>
-      <ul class="flex gap-6 text-sm">
-        <li><a href="#about" class="hover:text-cyan-400">About</a></li>
-        <li><a href="#skills" class="hover:text-cyan-400">Skills</a></li>
-        <li><a href="#projects" class="hover:text-cyan-400">Projects</a></li>
-        <li><a href="#contact" class="hover:text-cyan-400">Contact</a></li>
-      </ul>
+<body class="text-slate-100 antialiased">
+  <!-- Sticky nav -->
+  <header class="sticky top-0 z-50">
+    <nav class="glass grid-bg relative">
+      <div class="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
+        <a href="#home" class="group inline-flex items-center gap-2 font-extrabold tracking-wider">
+          <span class="text-accent-400">RAVEN</span>
+          <span class="text-slate-400 group-hover:text-slate-300 transition">/ Kalpa Fernando</span>
+        </a>
+        <button id="nav-toggle" class="md:hidden p-2 rounded hover:bg-white/5" aria-label="Toggle navigation" aria-expanded="false">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <ul id="nav-links" class="hidden md:flex items-center gap-6 text-sm">
+          <li><a class="hover:text-accent-400" href="#about">About</a></li>
+          <li><a class="hover:text-accent-400" href="#skills">Skills</a></li>
+          <li><a class="hover:text-accent-400" href="#projects">Projects</a></li>
+          <li><a class="hover:text-accent-400" href="#certs">Certificates</a></li>
+          <li><a class="hover:text-accent-400" href="#contact">Contact</a></li>
+          <li><a class="hover:text-accent-400" href="/LiveTV">LiveTV</a></li>
+        </ul>
+      </div>
+      <!-- mobile panel -->
+      <div id="mobile-panel" class="md:hidden hidden border-t border-white/10">
+        <ul class="px-4 py-3 space-y-3 text-sm">
+          <li><a class="block hover:text-accent-400" href="#about">About</a></li>
+          <li><a class="block hover:text-accent-400" href="#skills">Skills</a></li>
+          <li><a class="block hover:text-accent-400" href="#projects">Projects</a></li>
+          <li><a class="block hover:text-accent-400" href="#certs">Certificates</a></li>
+          <li><a class="block hover:text-accent-400" href="#contact">Contact</a></li>
+          <li><a class="block hover:text-accent-400" href="/LiveTV">LiveTV</a></li>
+        </ul>
+      </div>
     </nav>
+  </header>
 
+  <main id="home" class="relative mx-auto max-w-6xl px-4">
     <!-- Hero -->
-    <section class="text-center py-12" data-aos="fade-down">
-      <h2 class="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-purple-500 bg-clip-text text-transparent">
-        Hi, I’m Kalpa Fernando
-      </h2>
-      <p class="mt-4 text-gray-300">Full-Stack Developer (in progress) • Passionate about building apps & creative solutions 🌌</p>
-      <div class="flex justify-center gap-4 mt-6">
-        <a href="https://github.com/Ravediff" class="btn-link">GitHub</a>
-        <a href="#contact" class="btn-link">Hire Me</a>
-		<a href="LiveTV" class="btn-link">LiveTV</a>
+    <section class="pt-16 md:pt-24 pb-12" data-aos="fade-down">
+      <div class="flex flex-col items-center text-center gap-6">
+        <p class="text-sm uppercase tracking-[.25em] text-slate-400">Full‑Stack Developer (in progress)</p>
+        <h1 class="text-4xl md:text-6xl font-extrabold leading-tight">
+          Building clean, fast, and modern web experiences.
+        </h1>
+        <p class="max-w-2xl text-slate-300">I’m Kalpa (aka <span class="text-accent-400">Raven</span>) — I turn ideas into interactive apps with JavaScript, React, Node.js, and a builder’s mindset. Currently sharpening skills via IBM Full‑Stack and shipping projects.</p>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <a class="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10 shadow-soft" href="https://github.com/Ravediff" target="_blank" rel="noopener">View GitHub
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+          </a>
+          <a class="inline-flex items-center gap-2 rounded-lg bg-accent-400/90 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-accent-400" href="#contact">Hire Me</a>
+        </div>
       </div>
     </section>
 
     <!-- About -->
-    <section id="about" class="mt-16" data-aos="fade-up">
-      <h3 class="section-title border-cyan-400">About Me</h3>
-      <p class="mt-4 text-gray-300 leading-relaxed">
-        I’m Kalpa Fernando, an aspiring full-stack developer with a passion for turning ideas into clean, interactive web experiences.
-Coming from a hardworking background, I’ve learned to stay curious, adapt quickly, and keep building even when things get tough.
-I’m currently completing the IBM Full-Stack Development specialization while creating personal projects to sharpen my skills in JavaScript, React, Node.js, and modern cloud technologies.
-My goal is to join a remote team where I can grow as a developer, contribute real value, and keep exploring the creative side of code.
-      </p>
-    </section>
-
-    <!-- Skills -->
-    <section id="skills" class="mt-16" data-aos="fade-up">
-      <h3 class="section-title border-purple-400">Skills & Tools</h3>
-      <div class="flex flex-wrap gap-3 mt-4">
-	<span class="btn-link">Python</span>
-        <span class="btn-link">HTML</span>
-        <span class="btn-link">CSS / Tailwind</span>
-        <span class="btn-link">JavaScript</span>
-        <span class="btn-link">React</span>
-        <span class="btn-link">Node.js</span>
-        <span class="btn-link">Git & GitHub</span>
-        <span class="btn-link">SQL / Databases</span>
+    <section id="about" class="py-16" data-aos="fade-up">
+      <div class="grid md:grid-cols-3 gap-8 items-start">
+        <div class="md:col-span-2 space-y-4">
+          <h2 class="text-2xl font-bold">About Me</h2>
+          <p class="text-slate-300 leading-relaxed">I come from a hardworking background and bring that energy into code: learn fast, adapt, and keep shipping. I’m completing the IBM Full‑Stack program and building personal projects to level up in <strong>JavaScript, React, Node.js</strong>, and modern cloud/dev tools. My goal is to join a remote team where I can contribute, grow, and keep exploring the creative side of software.</p>
+        </div>
+        <aside class="glass rounded-xl p-5">
+          <h3 class="font-semibold mb-3">Quick Facts</h3>
+          <ul class="space-y-2 text-sm text-slate-300">
+            <li>📍 Based in Italy (remote‑friendly)</li>
+            <li>🎯 Focus: Frontend → Full‑Stack</li>
+            <li>🧪 Loves: fast iterations, clean UI, DX</li>
+            <li>🛠️ Currently learning: React patterns, APIs</li>
+          </ul>
+        </aside>
       </div>
     </section>
 
-    <!-- Projects Gallery from GitHub -->
-    <section id="projects" class="mt-16" data-aos="fade-up">
-      <h3 class="section-title border-fuchsia-400">My Repositories</h3>
-      <div id="repo-gallery" class="grid md:grid-cols-3 gap-6 mt-6"></div>
+    <!-- Skills -->
+    <section id="skills" class="py-16" data-aos="fade-up">
+      <h2 class="text-2xl font-bold mb-6">Skills & Tools</h2>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="glass rounded-xl p-5">
+          <h3 class="font-semibold mb-3">Languages</h3>
+          <div class="flex flex-wrap gap-2 text-sm">
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">JavaScript</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">Python</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">HTML</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">CSS</span>
+          </div>
+        </div>
+        <div class="glass rounded-xl p-5">
+          <h3 class="font-semibold mb-3">Frontend</h3>
+          <div class="flex flex-wrap gap-2 text-sm">
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">React</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">Tailwind</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">AOS</span>
+          </div>
+        </div>
+        <div class="glass rounded-xl p-5">
+          <h3 class="font-semibold mb-3">Backend & Data</h3>
+          <div class="flex flex-wrap gap-2 text-sm">
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">Node.js</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">REST APIs</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">SQL</span>
+          </div>
+        </div>
+        <div class="glass rounded-xl p-5">
+          <h3 class="font-semibold mb-3">Tools</h3>
+          <div class="flex flex-wrap gap-2 text-sm">
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">Git & GitHub</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Projects -->
+    <section id="projects" class="py-16" data-aos="fade-up">
+      <div class="flex items-end justify-between gap-4 mb-6">
+        <h2 class="text-2xl font-bold">Projects</h2>
+        <a class="text-sm text-accent-400 hover:underline" href="https://github.com/Ravediff?tab=repositories" target="_blank" rel="noopener">See all →</a>
+      </div>
+
+      <!-- Featured (manually curated) -->
+      <div id="featured" class="grid md:grid-cols-2 gap-6 mb-10"></div>
+
+      <!-- Latest from GitHub (auto) -->
+      <h3 class="text-sm uppercase tracking-widest text-slate-400 mb-3">Latest on GitHub</h3>
+      <div id="repo-gallery" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- skeletons -->
+        <div class="rounded-xl overflow-hidden border border-white/10 skeleton aspect-video"></div>
+        <div class="rounded-xl overflow-hidden border border-white/10 skeleton aspect-video"></div>
+        <div class="rounded-xl overflow-hidden border border-white/10 skeleton aspect-video"></div>
+      </div>
+      <p id="repo-error" class="hidden mt-3 text-sm text-red-300"></p>
     </section>
 
     <!-- Certificates -->
-    <section class="mt-16" data-aos="fade-up">
-      <h3 class="section-title border-cyan-400">Certificates</h3>
-      <ul class="card-list">
-        <li><a href="https://www.coursera.org/account/accomplishments/verify/2VPJ3U7X1PP5" target="_blank" class="card">🎓 IBM Full-Stack Developer – Intro</a></li>
+    <section id="certs" class="py-16" data-aos="fade-up">
+      <h2 class="text-2xl font-bold mb-6">Certificates</h2>
+      <ul class="grid sm:grid-cols-2 gap-4">
+        <li>
+          <a class="block glass rounded-xl p-4 hover:bg-white/[.08]" href="https://www.coursera.org/account/accomplishments/verify/2VPJ3U7X1PP5" target="_blank" rel="noopener">
+            <div class="flex items-center gap-3">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">🎓</span>
+              <div>
+                <p class="font-medium">IBM Full‑Stack Developer — Introduction</p>
+                <p class="text-sm text-slate-400">Coursera • ID: 2VPJ3U7X1PP5</p>
+              </div>
+            </div>
+          </a>
+        </li>
       </ul>
     </section>
 
     <!-- GitHub Stats -->
-    <section class="mt-16" data-aos="fade-up">
-      <h3 class="section-title border-purple-400">GitHub Stats</h3>
-      <div class="flex flex-wrap gap-4 mt-4 justify-center">
-        <img src="https://github-readme-stats.vercel.app/api?username=Ravediff&show_icons=true&theme=radical" class="rounded-md shadow-md max-w-full">
-        <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=Ravediff&layout=compact&theme=radical" class="rounded-md shadow-md max-w-full">
+    <section class="py-16" data-aos="fade-up">
+      <h2 class="text-2xl font-bold mb-6">GitHub Stats</h2>
+      <div class="flex flex-wrap gap-4 justify-center">
+        <img loading="lazy" decoding="async" src="https://github-readme-stats.vercel.app/api?username=Ravediff&show_icons=true&theme=radical" alt="GitHub stats for Ravediff" class="rounded-xl border border-white/10 shadow-soft max-w-full" />
+        <img loading="lazy" decoding="async" src="https://github-readme-stats.vercel.app/api/top-langs/?username=Ravediff&layout=compact&theme=radical" alt="Top languages for Ravediff" class="rounded-xl border border-white/10 shadow-soft max-w-full" />
       </div>
     </section>
 
     <!-- Contact -->
-    <section id="contact" class="mt-16" data-aos="fade-up">
-      <h3 class="section-title border-cyan-400">Contact Me</h3>
-      <form class="mt-4 grid gap-3" onsubmit="sendMail(event)">
-        <input id="name" type="text" placeholder="Your Name" required class="input">
-        <input id="email" type="email" placeholder="Your Email" required class="input">
-        <textarea id="message" rows="4" placeholder="Message" required class="input"></textarea>
-        <button type="submit" class="btn-link w-max">Send Message</button>
-      </form>
+    <section id="contact" class="py-16" data-aos="fade-up">
+      <div class="grid md:grid-cols-2 gap-8 items-start">
+        <div>
+          <h2 class="text-2xl font-bold mb-3">Contact</h2>
+          <p class="text-slate-300">Want to collaborate or hire me? Drop a message — I’ll get back to you.</p>
+          <ul class="mt-4 space-y-2 text-sm">
+            <li>📧 <a class="hover:underline text-accent-400" href="mailto:ravediff@gmail.com">kalpafernando@gmail.com</a></li>
+            <li>🐙 <a class="hover:underline text-accent-400" href="https://github.com/Ravediff" target="_blank" rel="noopener">github.com/Ravediff</a></li>
+          </ul>
+        </div>
+        <form id="contact-form" class="glass rounded-xl p-5 space-y-3" novalidate>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label for="name" class="text-sm text-slate-300">Name</label>
+              <input id="name" name="name" required class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2" placeholder="Your name" />
+            </div>
+            <div>
+              <label for="email" class="text-sm text-slate-300">Email</label>
+              <input id="email" name="email" type="email" required class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2" placeholder="you@example.com" />
+            </div>
+          </div>
+          <div>
+            <label for="message" class="text-sm text-slate-300">Message</label>
+            <textarea id="message" name="message" rows="4" required class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2" placeholder="Tell me about your project…"></textarea>
+          </div>
+          <!-- honeypot for spam bots -->
+          <input type="text" id="company" name="company" class="hidden" tabindex="-1" autocomplete="off" />
+
+          <div class="flex items-center gap-3">
+            <button id="send-btn" type="submit" class="inline-flex items-center gap-2 rounded-lg bg-accent-400/90 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-accent-400 disabled:opacity-50 disabled:cursor-not-allowed">Send Message</button>
+            <span id="form-status" class="text-sm text-slate-400"></span>
+          </div>
+        </form>
+      </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="mt-16 text-center text-sm text-gray-400">
-      <p>© 2025 Kalpa Fernando • Designed with ✨ & hard work</p>
+    <footer class="py-10 text-center text-sm text-slate-400 border-t border-white/10">
+      © <span id="year"></span> Kalpa Fernando • Built with care
     </footer>
   </main>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    // ====== Config ======
+    const GITHUB_USERNAME = 'Ravediff';
+    // Manually highlight key repos here (owner/repo). Leave [] to skip.
+    const FEATURED = [
+      // 'Ravediff/your-best-project',
+    ];
+
+    // EmailJS config (public keys are okay on the client)
+    const EMAILJS_PUBLIC_KEY = 'Sf2fbhCfTznrN84GM';
+    const EMAILJS_SERVICE_ID = 'service_ajvh72z';
+    const EMAILJS_TEMPLATE_ID = 'template_r83c3rt';
+
+    // ====== Utils ======
+    const $ = (sel, ctx = document) => ctx.querySelector(sel);
+    const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+
+    // ====== Nav (mobile) ======
+    const navToggle = $('#nav-toggle');
+    const mobilePanel = $('#mobile-panel');
+    const navLinks = $('#nav-links');
+    navToggle?.addEventListener('click', () => {
+      const expanded = navToggle.getAttribute('aria-expanded') === 'true';
+      navToggle.setAttribute('aria-expanded', !expanded);
+      mobilePanel.classList.toggle('hidden');
+    });
+
+    // Close mobile on link click
+    $$('#mobile-panel a').forEach(a => a.addEventListener('click', () => {
+      mobilePanel.classList.add('hidden');
+      navToggle.setAttribute('aria-expanded', 'false');
+    }));
+
+    // ====== Year ======
+    $('#year').textContent = new Date().getFullYear();
+
+    // ====== AOS ======
+    AOS.init({ duration: 800, once: true, easing: 'ease-out' });
+
+    // ====== GitHub: Featured + Latest ======
+    async function createRepoCard(fullName, repo) {
+      const card = document.createElement('article');
+      card.className = 'overflow-hidden rounded-xl border border-white/10 bg-white/5 hover:bg-white/[.07] transition shadow-soft';
+      const img = document.createElement('img');
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.src = `https://opengraph.githubassets.com/1/${fullName}`;
+      img.alt = repo?.name || fullName;
+      img.className = 'w-full aspect-video object-cover border-b border-white/10';
+
+      const body = document.createElement('div');
+      body.className = 'p-4';
+
+      const titleRow = document.createElement('div');
+      titleRow.className = 'flex items-center justify-between gap-3';
+
+      const title = document.createElement('a');
+      title.href = repo?.html_url || `https://github.com/${fullName}`;
+      title.target = '_blank';
+      title.rel = 'noopener';
+      title.textContent = repo?.name || fullName.split('/').pop();
+      title.className = 'font-semibold hover:underline';
+
+      const star = document.createElement('span');
+      star.className = 'text-xs text-slate-400';
+      star.textContent = repo?.stargazers_count ? `★ ${repo.stargazers_count}` : '';
+
+      const desc = document.createElement('p');
+      desc.className = 'mt-2 text-sm text-slate-300 line-clamp-3';
+      desc.textContent = repo?.description || 'No description provided.';
+
+      const meta = document.createElement('p');
+      meta.className = 'mt-2 text-xs text-slate-400';
+      const lang = repo?.language ? `• ${repo.language}` : '';
+      const updated = repo?.updated_at ? new Date(repo.updated_at).toLocaleDateString() : '';
+      meta.textContent = `${updated ? `Updated ${updated}` : ''} ${lang}`.trim();
+
+      titleRow.append(title, star);
+      body.append(titleRow, desc, meta);
+      card.append(img, body);
+      return card;
+    }
+
+    async function loadFeatured() {
+      if (!FEATURED.length) return; // skip if none
+      const wrap = document.getElementById('featured');
+      for (const fullName of FEATURED) {
+        try {
+          const res = await fetch(`https://api.github.com/repos/${fullName}`);
+          if (!res.ok) throw new Error('GitHub API error');
+          const repo = await res.json();
+          wrap.appendChild(await createRepoCard(fullName, repo));
+        } catch (e) {
+          wrap.appendChild(await createRepoCard(fullName));
+        }
+      }
+    }
+
+    async function loadLatestRepos() {
+      const grid = document.getElementById('repo-gallery');
+      const err = document.getElementById('repo-error');
+      try {
+        const res = await fetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=updated&per_page=6`);
+        if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+        const data = await res.json();
+        grid.innerHTML = '';
+        data.forEach(async (r) => {
+          grid.appendChild(await createRepoCard(r.full_name, r));
+        });
+      } catch (e) {
+        err.textContent = 'Could not load repositories (rate limited or offline). Try again later.';
+        err.classList.remove('hidden');
+      }
+    }
+
+    // ====== EmailJS (with basic validation + spam trap) ======
+    function initEmail() {
+      if (!window.emailjs) return;
+      emailjs.init(EMAILJS_PUBLIC_KEY);
+      const form = document.getElementById('contact-form');
+      const status = document.getElementById('form-status');
+      const btn = document.getElementById('send-btn');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        status.textContent = '';
+        if ($('#company').value) { // bot
+          status.textContent = 'Blocked as spam.';
+          return;
+        }
+        const name = $('#name').value.trim();
+        const email = $('#email').value.trim();
+        const message = $('#message').value.trim();
+        if (!name || !email || !message) {
+          status.textContent = 'Please complete all fields.';
+          return;
+        }
+        btn.disabled = true;
+        status.textContent = 'Sending…';
+        try {
+          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+            from_name: name,
+            from_email: email,
+            message
+          });
+          form.reset();
+          status.textContent = '✅ Message sent!';
+        } catch (err) {
+          status.textContent = '❌ Failed to send. Please email me directly.';
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    }
+
+    // ====== Boot ======
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadFeatured();
+      await loadLatestRepos();
+      initEmail();
+    });
+  </script>
+
+  <!-- Structured data (Person + WebSite) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Kalpa Fernando",
+    "alternateName": "Raven",
+    "url": "https://kalpafernando.com/",
+    "sameAs": ["https://github.com/Ravediff"],
+    "jobTitle": "Aspiring Full-Stack Developer"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Kalpa Fernando — Portfolio",
+    "url": "https://kalpafernando.com/"
+  }
+  </script>
 </body>
 </html>
-
