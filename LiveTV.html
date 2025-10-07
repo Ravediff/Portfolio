@@ -1,173 +1,506 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>RavenTV — 24h Live Schedule (Europe/Rome)</title>
+  <meta charset="UTF-8" />
+  <title>RavenTV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
   <style>
     :root { color-scheme: dark; }
-    body { margin:0; background:#0e0e0e; color:#eee; font-family:system-ui, Arial, sans-serif; text-align:center; }
-    header { background:#1b1b1b; padding:14px 18px; font-size:1.25rem; font-weight:600; }
-    #player { width:90%; max-width:960px; aspect-ratio:16/9; display:inline-block; margin-top:14px; }
-    #now { margin-top:12px; font-size:1rem; }
-    #next, #clock { color:#9aa; font-size:0.9rem; margin-top:4px; }
-    .hint { color:#889; font-size:12px; margin-top:6px; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:#0b0c0f; color:#e8ecf1; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    header { background:#0f1116; padding:14px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+    header h1 { font-size:1.1rem; margin:0; font-weight:700; letter-spacing:0.2px; }
+    .sub { opacity:.7; font-size:.9rem; }
+    .row { display:flex; gap:16px; padding:14px; flex-wrap:wrap; }
+    #player { flex: 1 1 720px; width: min(96vw, 1024px); aspect-ratio:16/9; background:#11151c; border:1px solid #1b2330; border-radius:12px; overflow:hidden; }
+    .panel { flex: 1 1 360px; min-width: 320px; background:#0f131a; border:1px solid #1b2330; border-radius:12px; padding:12px; }
+    .nowline { font-size:1rem; font-weight:600; margin:.25rem 0; }
+    .muted { color:#a6b0c0; font-size:.92rem; }
+    .hint { color:#8a94a6; font-size:.8rem; }
+    .chip { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.72rem; margin-left:8px; border:1px solid #2a3547; color:#cbd5e1; }
+    .ok { color:#9BE564; }
+    .warn { color:#ffd166; }
+    .err { color:#ff6b6b; }
+
+    /* EPG */
+    .epg { max-height: 60vh; overflow:auto; border-top:1px solid #1b2330; margin-top:8px; }
+    table { width:100%; border-collapse: collapse; font-size:.92rem; }
+    thead th { position: sticky; top:0; background:#0f131a; border-bottom:1px solid #1b2330; text-align:left; padding:8px; }
+    tbody td { border-bottom:1px dashed #1b2330; padding:8px; vertical-align: top; }
+    tr.active { background: linear-gradient(90deg, rgba(155,229,100,.08), transparent); }
+    .time { width:92px; white-space:nowrap; color:#b7c2d3; font-variant-numeric: tabular-nums; }
+    .title { font-weight:600; }
+    .cat { font-size:.72rem; opacity:.85; }
+
+    .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    select, button { background:#0b0f16; color:#e8ecf1; border:1px solid #263043; border-radius:8px; padding:6px 10px; font:inherit; }
+    button { cursor:pointer; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+
+    footer { padding:12px 18px; color:#8a94a6; font-size:.8rem; border-top:1px solid #161b26; }
+    a { color:#9BE564; text-decoration:none; }
+    a:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
-  <header>📡 RavenTV — 24-Hour Live Schedule (Europe/Rome)</header>
-  <div id="player"></div>
-  <div id="now"></div>
-  <div id="next"></div>
-  <div id="clock" class="hint"></div>
-  <div class="hint">No pause • No seek • Auto-sync to Europe/Rome time • Fallback if unavailable</div>
+  <header>
+    <h1>📡 RavenTV</h1>
+    <div class="sub">Europe/Rome · No pause · No seek · Auto‑sync · Fallback if unavailable</div>
+  </header>
+
+  <div class="row">
+    <div id="player"></div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <label for="daySel" class="muted">Day:</label>
+        <select id="daySel"></select>
+        <button id="jumpNow">Jump to Now</button>
+        <span id="clock" class="muted"></span>
+      </div>
+      <div class="nowline" id="now"></div>
+      <div class="muted" id="next"></div>
+      <div class="hint" id="validation"></div>
+
+      <div class="epg">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Program</th>
+              <th>Category</th>
+              <th>Len</th>
+            </tr>
+          </thead>
+          <tbody id="epgBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Official/PD/creator‑authorized uploads only (e.g., WB Kids, Oggy, Simon's Cat, Veritasium, Kurzgesagt, Sidemen). If an item errors or is blocked, a safe fallback stream loads.
+  </footer>
 
 <script>
-/* =========================
-   24h SCHEDULE — Europe/Rome
-   NOTE: No looping. Each slot plays its item only during the scheduled time window.
-   You can replace URLs with your own. Long livestreams are used for reliability.
-   ========================= */
-const schedule = [
-  // 00:00–06:00 — Overnight Chill (lofi/ambient long streams)
-  { title: "Overnight: Lofi Girl",            url: "https://www.youtube.com/watch?v=jfKfPfyJRdk", start: "00:00", duration: 10800 }, // 3h
-  { title: "Overnight: Chillhop Radio",       url: "https://www.youtube.com/watch?v=5yx6BWlEVcY", start: "03:00", duration: 10800 }, // 3h
+/* ==========================================================
+   RAVENTV — WEEKLY SCHEDULE (EUROPE/ROME) — DYNAMIC POOLS
+   - Per‑day grid
+   - Deterministic weekly selection (ISO week)
+   - If a video ends before the slot ends: auto‑pick another
+     video from the same pool and continue
+   ========================================================== */
 
-  // 06:00–08:00 — Morning Shorts (CC/public films)
-  { title: "Big Buck Bunny (CC)",             url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ", start: "06:00", duration: 900 },   // 15m (play within window)
-  { title: "Sintel (CC)",                     url: "https://www.youtube.com/watch?v=eRsGyueVLvQ", start: "06:15", duration: 1000 }, // ~16m40
-  { title: "Tears of Steel (CC)",             url: "https://www.youtube.com/watch?v=R6MlUcmOul8", start: "06:33", duration: 760 },  // ~12m40
-  { title: "Morning Ambient Stream",          url: "https://www.youtube.com/watch?v=Uq0_zEvC3JU", start: "06:46", duration: 4440 }, // fill to 08:00
+const FALLBACK_VIDEO_ID = "UoRX7aXxlrE"; // safe ambient fallback
 
-  // 08:00–12:00 — Daytime Easy
-  { title: "Daytime: Lofi Girl",              url: "https://www.youtube.com/watch?v=jfKfPfyJRdk", start: "08:00", duration: 7200 }, // 2h
-  { title: "Daytime: Chillhop",               url: "https://www.youtube.com/watch?v=-GhO4J5E_hE&list=PL60w-HuMkn3Dpe-rpmoi0g_FJA1gYJjHX", start: "10:00", duration: 7200 }, // 2h
+/** Utility */
+const hmsToSec = (hhmm) => { const [h,m] = hhmm.split(":").map(Number); return h*3600 + m*60; };
+const pad2 = (n)=> String(n).padStart(2,"0");
 
-  // 12:00–15:00 — Midday Feature/Clips
-  { title: "Midday Feature (CC clip block)",  url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ", start: "12:00", duration: 1200 }, // short CC film block starter
-  { title: "Public Domain Cartoons Marathon", url: "https://www.youtube.com/watch?v=je1jggZQofI", start: "12:20", duration: 10000 }, // long comp (plays until 15:00 boundary)
+/** Europe/Rome time helpers */
+function romeDate(){ return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' })); }
+function romeParts(){ const parts = new Intl.DateTimeFormat('en-GB', { timeZone:'Europe/Rome', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }).formatToParts(romeDate());
+  const h = +parts.find(p=>p.type==='hour').value; const m=+parts.find(p=>p.type==='minute').value; const s=+parts.find(p=>p.type==='second').value; return {h,m,s}; }
+function romeSec(){ const {h,m,s}=romeParts(); return h*3600+m*60+s; }
+function romeWeekday(){ const day = new Intl.DateTimeFormat('en-GB', { timeZone:'Europe/Rome', weekday:'short' }).format(romeDate()); return day.charAt(0).toUpperCase() + day.slice(1,3); }
+function isoWeek(){ const d = romeDate(); const dayNum = (d.getDay() || 7); d.setDate(d.getDate() + 4 - dayNum); const yearStart = new Date(d.getFullYear(),0,1); return Math.ceil((((d - yearStart) / 86400000) + 1) / 7); }
 
-  // 15:00–18:00 — Afternoon Chill / Ambient
-  { title: "Afternoon: Chillhop",             url: "https://www.youtube.com/watch?v=5yx6BWlEVcY", start: "15:00", duration: 5400 }, // 1.5h
-  { title: "Afternoon: Nature Ambient 4K",    url: "https://www.youtube.com/watch?v=Uq0_zEvC3JU", start: "16:30", duration: 5400 }, // 1.5h
+/** Hash + seeded pick */
+function hash32(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619);} return (h>>>0); }
+function pickBySeed(arr, seedKey){ if(!arr || !arr.length) return null; const n = (typeof seedKey === 'number') ? seedKey : hash32(String(seedKey)); return arr[n % arr.length]; }
+function pickRandom(arr){ return arr && arr.length ? arr[Math.floor(Math.random()*arr.length)] : null; }
 
-  // 18:00–21:00 — Early Evening (CC film + stream)
-  { title: "Evening Feature Starter (CC)",    url: "https://www.youtube.com/watch?v=eRsGyueVLvQ", start: "18:00", duration: 1000 },
-  { title: "Evening: Lofi Girl",              url: "https://www.youtube.com/watch?v=jfKfPfyJRdk", start: "18:17", duration: 6100 }, // to 20:00
-  { title: "Evening: Chillhop",               url: "https://www.youtube.com/watch?v=5yx6BWlEVcY", start: "20:00", duration: 3600 },
+/** Slot builder */
+const S = (start, duration, title, urlOrPicker, cat) => ({ start, duration, title, url: urlOrPicker, cat });
 
-  // 21:00–24:00 — Night Block (ambient/chill)
-  { title: "Night: Ambient Stream",           url: "https://www.youtube.com/watch?v=Uq0_zEvC3JU", start: "21:00", duration: 5400 }, // 1.5h
-  { title: "Late Night: Lofi Girl",           url: "https://www.youtube.com/watch?v=jfKfPfyJRdk", start: "22:30", duration: 5400 }  // to 24:00
-];
+/** Helper: create a seeded picker bound to a pool key, store .poolKey */
+const fromPool = (poolKey) => {
+  const fn = (seed)=> pickBySeed(POOL[poolKey], seed);
+  fn.poolKey = poolKey;
+  return fn;
+};
 
-/* Safe fallback if any item errors or is blocked */
-const FALLBACK_VIDEO_ID = "jfKfPfyJRdk"; // Lofi Girl (generally embeddable)
+/* ==========================================================
+   CONTENT POOLS (English only; episodes/long videos)
+   NOTE: Add/replace links with official uploads to expand variety
+   ========================================================== */
+const POOL = {
+  cartoons: [
+    // Oggy (official)
+    "https://www.youtube.com/watch?v=Dyg1ni_KK2U",
+    "https://www.youtube.com/watch?v=-8PrWwmO1lE",
+    "https://www.youtube.com/watch?v=1c9HA1Qi9Wc",
+    "https://www.youtube.com/watch?v=yEZL1W515os",
+    "https://www.youtube.com/watch?v=scnUNkoRukU",
+    "https://www.youtube.com/watch?v=TQK9KRltXT8",
 
-/* =========================
-   CORE LOGIC (no looping)
-   ========================= */
-let currentKey = null;
-let ytPlayer = null;
+    // WB Kids / Looney Tunes compilations (long)
+    "https://www.youtube.com/watch?v=DuXwFlL8Usk",
+    "https://www.youtube.com/watch?v=rCqTPilUnEc",
+    "https://www.youtube.com/watch?v=deJinoeuEM0",
+    "https://www.youtube.com/watch?v=LQ7gni_c_MA",
 
-function romeHMS() {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/Rome',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false
-  }).formatToParts(new Date());
-  const h = +parts.find(p => p.type==='hour').value;
-  const m = +parts.find(p => p.type==='minute').value;
-  const s = +parts.find(p => p.type==='second').value;
-  return {h,m,s};
+    // Simon's Cat long specials
+    "https://www.youtube.com/watch?v=M6vVTZglSzM",
+    "https://www.youtube.com/watch?v=l8AAu-VNIQw",
+    "https://www.youtube.com/watch?v=YExoq62sOrQ",
+
+    "https://youtu.be/i7y6RdbCkMU?si=KRogPGz74Nhfweam",
+  ],
+
+  variety_sidemen: [
+    // Sidemen official long episodes (INSIDE series etc.)
+    "https://www.youtube.com/watch?v=0NU6lxSNHqE",
+    "https://www.youtube.com/watch?v=x8X4dckmAYM",
+    "https://www.youtube.com/watch?v=xdD9nQaDQxc",
+    "https://youtu.be/3IcbV2hFaqo?si=uBwHRu2WJ8QPys8C",
+    "https://youtu.be/fQls5IaDi3A?si=f2xt3Ac52W0mKzvz",
+  ],
+
+  theory_gametheory: [
+    "https://www.youtube.com/watch?v=dgxPlUgIqSA",
+    "https://www.youtube.com/watch?v=WP7GVMfX38k",
+    "https://youtu.be/th_LYe97ZVc?si=V4Rysi_PF6INQky4",
+    "https://youtu.be/_0fX0WNMMUo?si=-Dw-34Rezo0rUuQv",
+    
+  ],
+
+  science_veritasium: [
+    "https://www.youtube.com/watch?v=Q10_srZ-pbs",
+    "https://www.youtube.com/watch?v=mXVGIb3bzHI",
+    "https://www.youtube.com/watch?v=oI_X2cMHNe0",
+    "https://www.youtube.com/watch?v=0xS68sl2D70",
+  ],
+
+  science_kurzgesagt: [
+    "https://www.youtube.com/watch?v=S7TUe5w6RHo",
+    "https://www.youtube.com/watch?v=Pj-h6MEgE7I",
+    "https://www.youtube.com/watch?v=JXeJANDKwDc",
+    "https://www.youtube.com/watch?v=e-P5IFTqB98",
+  ],
+
+  documentaries: [
+    // Replace/expand with free/official documentaries
+    "https://www.youtube.com/watch?v=Hi8IiN5xhj8",
+    "https://youtu.be/Vrtbxvefnjs?si=Ab8_AD2KC3jOGpkC",
+    "https://youtu.be/uSMGENDH_QI?si=A1cy5e7PCkg2yKGg",
+    "https://youtu.be/LPiyBe3UDPI?si=BgAhevNtjXE3eXNj"
+  ],
+
+  ambient: [
+    "https://youtu.be/sjkrrmBnpGE?si=i3NZONk9TeyrKHdR",
+    "https://www.youtube.com/watch?v=8Z1eMy2FoX4",
+    "https://youtu.be/qRitf7c3-nQ?si=JEBLo_vUiLhl3qlN"
+  ],
+
+  intermission: [
+    "https://www.youtube.com/watch?v=YE7VzlLtp-4",
+    "https://www.youtube.com/watch?v=E9oKEJ1pXPw",
+  ]
+};
+
+/* ==========================================================
+   WEEKLY SCHEDULE — seeded pool picks per slot
+   ========================================================== */
+const SCHEDULE = {
+  Mon: [
+    S("00:00", 7200,  "Night Docs: Tech/Nature",  fromPool('documentaries'),  "Documentary"),
+    S("02:00", 5400,  "Space Hour",               fromPool('science_kurzgesagt'), "Science/Space"),
+    S("03:30", 5400,  "Chill Nature 4K",         fromPool('ambient'), "Nature"),
+    S("05:00", 3600,  "Cartoon Block",           fromPool('cartoons'), "Cartoon"),
+    S("06:00", 1200,  "Intermission",            fromPool('intermission'), "Intermission"),
+    S("06:20", 3600,  "Cartoon Block",           fromPool('cartoons'), "Cartoon"),
+    S("07:20", 2400,  "Cartoon Short",           fromPool('cartoons'), "Cartoon"),
+    S("08:00", 7200,  "Science: Kurzgesagt",     fromPool('science_kurzgesagt'), "Education"),
+    S("10:00", 7200,  "Variety: Sidemen",        fromPool('variety_sidemen'), "Variety"),
+    S("12:00",10800,  "Cartoons Marathon",       fromPool('cartoons'),  "Cartoon"),
+    S("15:00", 7200,  "Veritasium Feature",      fromPool('science_veritasium'), "Science"),
+    S("17:00", 3600,  "Game Theory",             fromPool('theory_gametheory'), "Theory"),
+    S("18:00", 6000,  "Sidemen Prime",           fromPool('variety_sidemen'), "Variety"),
+    S("19:40", 1200,  "Intermission",            fromPool('intermission'), "Intermission"),
+    S("20:00", 5400,  "Kurzgesagt/Space",        fromPool('science_kurzgesagt'), "Science/Space"),
+    S("21:30", 5400,  "Game Theory Night",       fromPool('theory_gametheory'), "Theory"),
+    S("23:00", 3600,  "Night Nature 4K",         fromPool('ambient'), "Nature"),
+  ],
+  Tue: [
+    S("00:00", 5400,  "Night Nature 4K",         fromPool('ambient'), "Nature"),
+    S("01:30", 5400,  "Doc Block",               fromPool('documentaries'), "Documentary"),
+    S("03:00", 7200,  "Kurzgesagt Space",        fromPool('science_kurzgesagt'), "Science/Space"),
+    S("05:00", 3600,  "Cartoon Hour",            fromPool('cartoons'), "Cartoon"),
+    S("06:00", 3600,  "Cartoon Hour",            fromPool('cartoons'), "Cartoon"),
+    S("07:00", 3600,  "Cartoon Short",           fromPool('cartoons'), "Cartoon"),
+    S("08:00", 7200,  "Veritasium Explainers",   fromPool('science_veritasium'), "Education"),
+    S("10:00", 7200,  "Sidemen Feature",         fromPool('variety_sidemen'), "Variety"),
+    S("12:00",10800,  "Cartoons Marathon",       fromPool('cartoons'), "Cartoon"),
+    S("15:00", 7200,  "Kurzgesagt Prime",        fromPool('science_kurzgesagt'), "Education"),
+    S("17:00", 3600,  "Game Theory",             fromPool('theory_gametheory'), "Theory"),
+    S("18:00", 7200,  "Nature Visuals",          fromPool('ambient'), "Nature"),
+    S("20:00", 5400,  "Theory Night",            fromPool('theory_gametheory'), "Theory"),
+    S("21:30", 5400,  "Late Docs",               fromPool('documentaries'), "Documentary"),
+    S("23:00", 3600,  "Night Ambient",           fromPool('ambient'), "Nature"),
+  ],
+  Wed: [
+    S("00:00", 5400,  "Late Docs",               fromPool('documentaries'), "Documentary"),
+    S("01:30", 5400,  "Space Hour",              fromPool('science_kurzgesagt'), "Science/Space"),
+    S("03:00", 7200,  "Cartoons Marathon",       fromPool('cartoons'), "Cartoon"),
+    S("05:00", 3600,  "Cartoon Feature",         fromPool('cartoons'), "Cartoon"),
+    S("06:00", 3600,  "Cartoon Hour",            fromPool('cartoons'), "Cartoon"),
+    S("07:00", 3600,  "Cartoon Short",           fromPool('cartoons'), "Cartoon"),
+    S("08:00", 7200,  "Kurzgesagt",              fromPool('science_kurzgesagt'), "Education"),
+    S("10:00", 7200,  "Sidemen — Feature",       fromPool('variety_sidemen'), "Variety"),
+    S("12:00",10800,  "Docs/Tech",               fromPool('documentaries'), "Documentary"),
+    S("15:00", 3600,  "Veritasium",              fromPool('science_veritasium'), "Education"),
+    S("16:00", 7200,  "Nature Visuals 4K",       fromPool('ambient'), "Nature"),
+    S("18:00", 5400,  "Documentary Prime",       fromPool('documentaries'), "Documentary"),
+    S("19:30", 1200,  "Intermission",            fromPool('intermission'), "Intermission"),
+    S("19:50", 4200,  "Sidemen Evening",         fromPool('variety_sidemen'), "Variety"),
+    S("21:00", 5400,  "Theory Night",            fromPool('theory_gametheory'), "Theory"),
+    S("22:30", 5400,  "Late Nature 4K",          fromPool('ambient'), "Nature"),
+  ],
+  Thu: [
+    S("00:00", 5400,  "Night Visuals 4K",        fromPool('ambient'), "Nature"),
+    S("01:30", 5400,  "Doc Block",               fromPool('documentaries'), "Documentary"),
+    S("03:00", 7200,  "Cartoons Marathon",       fromPool('cartoons'), "Cartoon"),
+    S("05:00", 3600,  "Cartoon Feature",         fromPool('cartoons'), "Cartoon"),
+    S("06:00", 3600,  "Cartoon Hour",            fromPool('cartoons'), "Cartoon"),
+    S("07:00", 3600,  "Cartoon Feature",         fromPool('cartoons'), "Cartoon"),
+    S("08:00", 7200,  "Veritasium Morning",      fromPool('science_veritasium'), "Education"),
+    S("10:00", 7200,  "Sidemen Feature",         fromPool('variety_sidemen'), "Variety"),
+    S("12:00",10800,  "Kurzgesagt Marathon",     fromPool('science_kurzgesagt'), "Education"),
+    S("15:00", 7200,  "Doc/Tech",                fromPool('documentaries'), "Documentary"),
+    S("17:00", 3600,  "Space Feature",           fromPool('science_kurzgesagt'), "Science/Space"),
+    S("18:00", 5400,  "Documentary Prime",       fromPool('documentaries'), "Documentary"),
+    S("19:30", 5400,  "Nature Evening 4K",       fromPool('ambient'), "Nature"),
+    S("21:00", 5400,  "Theory Night",            fromPool('theory_gametheory'), "Theory"),
+    S("22:30", 5400,  "Night Visuals 4K",        fromPool('ambient'), "Nature"),
+  ],
+  Fri: [
+    S("00:00", 5400,  "Night Docs",               fromPool('documentaries'), "Documentary"),
+    S("01:30", 5400,  "Space Hour",              fromPool('science_kurzgesagt'), "Science/Space"),
+    S("03:00", 7200,  "Cartoons Marathon",       fromPool('cartoons'), "Cartoon"),
+    S("05:00", 3600,  "Cartoon Feature",         fromPool('cartoons'), "Cartoon"),
+    S("06:00", 3600,  "Cartoon Hour",            fromPool('cartoons'), "Cartoon"),
+    S("07:00", 3600,  "Cartoon Feature",         fromPool('cartoons'), "Cartoon"),
+    S("08:00", 7200,  "Kurzgesagt + Veritasium", fromPool('science_kurzgesagt'), "Education"),
+    S("10:00", 7200,  "Sidemen Feature",         fromPool('variety_sidemen'), "Variety"),
+    S("12:00",10800,  "Documentary Longform",    fromPool('documentaries'), "Documentary"),
+    S("15:00", 7200,  "Veritasium",              fromPool('science_veritasium'), "Education"),
+    S("17:00", 3600,  "Space",                   fromPool('science_kurzgesagt'), "Science/Space"),
+    S("18:00", 7200,  "FRIDAY PRIME — Sidemen", fromPool('variety_sidemen'), "Variety"),
+    S("20:00", 5400,  "Theory Night",            fromPool('theory_gametheory'), "Theory"),
+    S("21:30", 5400,  "Nature Night 4K",         fromPool('ambient'), "Nature"),
+    S("23:00", 3600,  "Intermission",            fromPool('intermission'), "Intermission"),
+  ],
+  Sat: [
+    S("00:00", 7200,  "Weekend Kickoff Doc",     fromPool('documentaries'), "Documentary"),
+    S("02:00", 5400,  "Space Hour",              fromPool('science_kurzgesagt'), "Science/Space"),
+    S("03:30", 5400,  "Night Visuals 4K",        fromPool('ambient'), "Nature"),
+    S("05:00", 3600,  "Cartoon Feature",         fromPool('cartoons'), "Cartoon"),
+    S("06:00", 3600,  "Cartoon Hour",            fromPool('cartoons'), "Cartoon"),
+    S("07:00", 3600,  "Cartoon Feature",         fromPool('cartoons'), "Cartoon"),
+    S("08:00", 7200,  "Sidemen Saturday",        fromPool('variety_sidemen'), "Variety"),
+    S("10:00", 7200,  "Kurzgesagt Learn",        fromPool('science_kurzgesagt'), "Education"),
+    S("12:00",10800,  "Cartoons Weekend",        fromPool('cartoons'), "Cartoon"),
+    S("15:00", 7200,  "Veritasium/Doc",          fromPool('science_veritasium'), "Doc/Science"),
+    S("17:00", 3600,  "Veritasium",              fromPool('science_veritasium'), "Education"),
+    S("18:00", 7200,  "Prime: Sidemen",          fromPool('variety_sidemen'), "Variety"),
+    S("20:00", 5400,  "Theories & Mysteries",    fromPool('theory_gametheory'), "Theory"),
+    S("21:30", 5400,  "Nature Night 4K",         fromPool('ambient'), "Nature"),
+    S("23:00", 3600,  "Intermission",            fromPool('intermission'), "Intermission"),
+  ],
+  Sun: [
+    S("00:00", 7200,  "Late Docs",               fromPool('documentaries'), "Documentary"),
+    S("02:00", 5400,  "Space/NASA",              fromPool('science_kurzgesagt'), "Science/Space"),
+    S("03:30", 5400,  "Night Visuals 4K",        fromPool('ambient'), "Nature"),
+    S("05:00", 3600,  "Cartoon Feature",         fromPool('cartoons'), "Cartoon"),
+    S("06:00", 3600,  "Cartoon Hour",            fromPool('cartoons'), "Cartoon"),
+    S("07:00", 3600,  "Cartoon Feature",         fromPool('cartoons'), "Cartoon"),
+    S("08:00", 7200,  "Kurzgesagt Sunday",       fromPool('science_kurzgesagt'), "Education"),
+    S("10:00", 7200,  "Sidemen — Sunday",        fromPool('variety_sidemen'), "Variety"),
+    S("12:00",10800,  "Cartoons Marathon",       fromPool('cartoons'), "Cartoon"),
+    S("15:00", 7200,  "Veritasium/Docs",         fromPool('science_veritasium'), "Doc/Science"),
+    S("17:00", 3600,  "Space Feature",           fromPool('science_kurzgesagt'), "Science/Space"),
+    S("18:00", 5400,  "Documentary Prime",       fromPool('documentaries'), "Documentary"),
+    S("19:30", 5400,  "Nature Golden Hour",      fromPool('ambient'), "Nature"),
+    S("21:00", 5400,  "Theory Nightcap",         fromPool('theory_gametheory'), "Theory"),
+    S("22:30", 5400,  "Night Visuals 4K",        fromPool('ambient'), "Nature"),
+  ],
+};
+
+/* ========================= CORE ENGINE ========================= */
+let ytPlayer = null; let currentKey = null; let activeDay = romeWeekday();
+let currentSlotPool = null; // NEW: remember pool per active slot
+
+function extractId(url){
+  try{
+    const value = (typeof url === 'function') ? url('') : url;
+    if(!value || typeof value !== 'string') return null;
+    if(value.includes('youtu.be/')) return value.split('youtu.be/')[1].split(/[?&]/)[0];
+    const u = new URL(value);
+    return u.searchParams.get('v');
+  }catch(e){ return null; }
 }
-function romeSec() { const {h,m,s}=romeHMS(); return h*3600+m*60+s; }
-function hmsToSec(hhmm){ const [h,m]=hhmm.split(':').map(Number); return h*3600+m*60; }
 
-function findCurrent() {
+function byStart(a,b){ return hmsToSec(a.start) - hmsToSec(b.start); }
+
+function findCurrent(slots){
   const now = romeSec();
-  for (let i=0;i<schedule.length;i++){
-    const start = hmsToSec(schedule[i].start);
-    const end = start + schedule[i].duration;
-    if (now >= start && now < end) {
-      return { show:schedule[i], elapsed: now - start, next: schedule[i+1] || null };
-    }
+  for(let i=0;i<slots.length;i++){
+    const start = hmsToSec(slots[i].start), end = start + slots[i].duration;
+    if(now >= start && now < end) return {show:slots[i], idx:i, elapsed: now - start, next: slots[i+1] || null};
   }
   return null;
 }
-function extractId(url){
-  try{
-    if(url.includes('youtu.be/')) return url.split('youtu.be/')[1].split(/[?&]/)[0];
-    const u = new URL(url);
-    return u.searchParams.get('v');
-  }catch{ return null; }
+
+function validate(slots){
+  const msgs = []; let ok=true;
+  const copy = [...slots].sort(byStart);
+  for(let i=0;i<copy.length;i++){
+    const s = hmsToSec(copy[i].start), e = s + copy[i].duration;
+    if(e > 24*3600){ ok=false; msgs.push(`❌ Slot "${copy[i].title}" exceeds 24:00 boundary`); }
+    if(i>0){ const prev = copy[i-1]; const ps = hmsToSec(prev.start), pe = ps + prev.duration;
+      if(s < pe){ ok=false; msgs.push(`❌ Overlap: "${prev.title}" → "${copy[i].title}"`); }
+      if(s > pe){ msgs.push(`⚠️ Gap ${Math.round((s-pe)/60)}m between "${prev.title}" and "${copy[i].title}"`); }
+    }
+  }
+  if(ok) msgs.unshift("✅ Schedule looks structurally sound. Minor gaps are allowed.");
+  return {ok, text: msgs.join(" · ")};
 }
 
-function makePlayer(videoId, startAt){
+function renderEPG(slots){
+  const tbody = document.getElementById('epgBody'); tbody.innerHTML = '';
+  const nowInfo = findCurrent(slots);
+  slots.forEach((slot, i)=>{
+    const tr = document.createElement('tr');
+    const s = hmsToSec(slot.start), e = s + slot.duration; const lenMin = Math.round(slot.duration/60);
+    const tdTime = `<td class="time">${slot.start}–${pad2(Math.floor(e/3600))}:${pad2(Math.floor((e%3600)/60))}</td>`;
+    const tdTitle = `<td class="title">${slot.title}</td>`;
+    const tdCat = `<td class="cat">${slot.cat||'-'}</td>`;
+    const tdLen = `<td class="muted">${lenMin}m</td>`;
+    tr.innerHTML = tdTime + tdTitle + tdCat + tdLen;
+    if(nowInfo && nowInfo.idx === i) tr.classList.add('active');
+    tbody.appendChild(tr);
+  });
+}
+
+function makePlayer(videoId, startAt, poolKey){
+  currentSlotPool = poolKey || null;
   ytPlayer = new YT.Player('player', {
-    height: '540', width: '960', videoId,
-    playerVars:{
-      autoplay:1, controls:0, disablekb:1,
-      start: Math.max(0, Math.floor(startAt)),
-      modestbranding:1, rel:0
-    },
+    height:'576', width:'1024', videoId,
+    playerVars:{ autoplay:1, controls:0, disablekb:1, start: Math.max(0, Math.floor(startAt)), modestbranding:1, rel:0 },
     events:{
-      onReady: (e)=> e.target.playVideo(),
-      onStateChange: (e)=>{
-        // No pausing
-        if (e.data === YT.PlayerState.PAUSED) e.target.playVideo();
+      onReady:(e)=> e.target.playVideo(),
+      onStateChange:(e)=>{
+        if(e.data === YT.PlayerState.PAUSED) e.target.playVideo();
+        if(e.data === YT.PlayerState.ENDED){
+          const info = findCurrent(SCHEDULE[activeDay]);
+          if(info){
+            const slotEnd = hmsToSec(info.show.start) + info.show.duration;
+            const now = romeSec();
+            const remaining = slotEnd - now;
+            if(remaining > 30 && currentSlotPool && POOL[currentSlotPool]){
+              const nextUrl = pickRandom(POOL[currentSlotPool]);
+              const nextVid = extractId(nextUrl);
+              if(nextVid){
+                try{ ytPlayer?.destroy(); }catch(e){}
+                ytPlayer = null;
+                makePlayer(nextVid, 0, currentSlotPool);
+                return;
+              }
+            }
+          }
+          try{ ytPlayer?.destroy(); }catch(e){}
+          ytPlayer=null; makePlayer(FALLBACK_VIDEO_ID, 0);
+        }
       },
-      onError: ()=>{
-        // Fallback to safe stream if blocked/unavailable
-        if (ytPlayer) { try{ ytPlayer.destroy(); }catch{} ytPlayer=null; }
-        makePlayer(FALLBACK_VIDEO_ID, 0);
-        document.getElementById('now').textContent = "▶ Now Playing: (Fallback Stream)";
-      }
+      onError: ()=>{ try{ ytPlayer?.destroy(); }catch(e){} ytPlayer=null; makePlayer(FALLBACK_VIDEO_ID, 0);
+        document.getElementById('now').textContent = '▶ Now Playing: (Fallback Stream)'; }
     }
   });
 }
 
+function resolve(urlOrPicker, seedKey){ return (typeof urlOrPicker === 'function') ? urlOrPicker(seedKey) : urlOrPicker; }
+
 function loadProgram(force=false){
-  const info = findCurrent();
+  const slots = SCHEDULE[activeDay].slice().sort(byStart);
+  const info = findCurrent(slots);
   const $now = document.getElementById('now');
   const $next = document.getElementById('next');
 
   if(!info){
-    if(force && ytPlayer){ try{ ytPlayer.destroy(); }catch{} ytPlayer=null; }
-    currentKey = null;
-    $now.textContent = "⏸ Off-air";
-    $next.textContent = "";
+    if(force && ytPlayer){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer=null; }
+    currentKey = null; $now.textContent = '⏸ Off‑air (no slot at this exact minute)'; $next.textContent = '';
     return;
   }
 
-  const key = info.show.title;
-  if(!force && key === currentKey) return; // same slot: do nothing
+  const seed = `${isoWeek()}|${activeDay}|${info.show.start}|${info.show.title}`;
+  const urlNow = resolve(info.show.url, seed);
+  const key = `${info.show.title}|${info.show.start}|${urlNow}`;
+  if(!force && key === currentKey) return; // same slot/video
   currentKey = key;
 
-  $now.textContent = `▶ Now Playing: ${info.show.title}`;
-  $next.textContent = info.next ? `⏭ Next at ${info.next.start} → ${info.next.title}` : "";
+  // detect poolKey
+  let poolKey = null;
+  if(typeof info.show.url === 'function' && info.show.url.poolKey){ poolKey = info.show.url.poolKey; }
 
-  const vid = extractId(info.show.url) || FALLBACK_VIDEO_ID;
-  if (ytPlayer){ try{ ytPlayer.destroy(); }catch{} ytPlayer=null; }
-  makePlayer(vid, info.elapsed);
+  $now.innerHTML = `▶ Now: <span class="title">${info.show.title}</span> <span class="chip">${info.show.cat||''}</span>`;
+  $next.textContent = info.next ? `⏭ Next at ${info.next.start} → ${info.next.title}` : '';
+
+  const vid = extractId(urlNow) || FALLBACK_VIDEO_ID;
+  try{ ytPlayer?.destroy(); }catch(e){}
+  ytPlayer=null; makePlayer(vid, info.elapsed, poolKey);
+}
+
+function populateDaySelect(){
+  const sel = document.getElementById('daySel');
+  const order = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  order.forEach(d=>{ const opt=document.createElement('option'); opt.value=d; opt.textContent=d; sel.appendChild(opt); });
+  sel.value = activeDay;
+  sel.addEventListener('change', ()=>{ activeDay = sel.value; hydrateDay(); });
+}
+
+function hydrateDay(){
+  const slots = SCHEDULE[activeDay].slice().sort(byStart);
+  renderEPG(slots);
+  const v = validate(slots); const el = document.getElementById('validation');
+  el.innerHTML = (v.ok? `<span class="ok">${v.text}</span>` : `<span class="err">${v.text}</span>`);
+  loadProgram(true);
+}
+
+function tickClock(){
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone:'Europe/Rome', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }).format(romeDate());
+  document.getElementById('clock').textContent = `Europe/Rome: ${parts}`;
 }
 
 window.onYouTubeIframeAPIReady = () => {
-  loadProgram(true);
-  // check for slot change every 5s (no reseek mid-show, so no jitter)
-  setInterval(()=>loadProgram(false), 5000);
+  populateDaySelect();
+  hydrateDay();
+  setInterval(()=>{ loadProgram(false); }, 5000); // check for slot change
 };
 
-// clock UI
-function tickClock(){
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone:'Europe/Rome', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
-  }).format(new Date());
-  document.getElementById('clock').textContent = `Europe/Rome time: ${parts}`;
-}
 setInterval(tickClock, 1000); tickClock();
+
+document.getElementById('jumpNow').addEventListener('click', ()=>{ activeDay = romeWeekday(); document.getElementById('daySel').value = activeDay; hydrateDay(); });
+
+/* =========================
+   Self‑tests (console)
+   ========================= */
+(function selfTests(){
+  try{
+    console.group('%cRavenTV Self‑Tests','color:#9BE564');
+    const t1 = extractId('https://www.youtube.com/watch?v=aqz-KE-bpKQ') === 'aqz-KE-bpKQ';
+    const t2 = extractId('https://youtu.be/jfKfPfyJRdk?si=abc') === 'jfKfPfyJRdk';
+    const t3 = typeof fromPool('cartoons').poolKey === 'string';
+    console.log('extractId()', {t1,t2});
+    console.log('fromPool() annotates poolKey', {t3});
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const results = days.map(d=>({d, ...validate(SCHEDULE[d])}));
+    console.table(results.map(r=>({day:r.d, ok:r.ok})));
+    console.groupEnd();
+  }catch(e){ console.error('Self‑tests failed:', e); }
+})();
 </script>
 </body>
 </html>
